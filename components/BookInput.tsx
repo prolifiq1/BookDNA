@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { searchGutenberg, fetchGutenbergText, searchOpenLibrary, SearchResult } from '@/lib/sources';
+import { searchGutenberg, fetchGutenbergText, SearchResult } from '@/lib/sources';
 
 interface BookInputProps {
   onTextLoaded: (text: string, title: string, author: string) => void;
@@ -24,11 +24,8 @@ export default function BookInput({ onTextLoaded, isAnalysing }: BookInputProps)
     if (!query.trim()) return;
     setSearching(true);
     try {
-      const [gutenberg, openLib] = await Promise.all([
-        searchGutenberg(query).catch(() => []),
-        searchOpenLibrary(query).catch(() => []),
-      ]);
-      setResults([...gutenberg, ...openLib]);
+      const gutenberg = await searchGutenberg(query).catch(() => []);
+      setResults(gutenberg);
     } finally {
       setSearching(false);
     }
