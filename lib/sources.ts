@@ -37,18 +37,8 @@ export async function searchGutenberg(query: string): Promise<SearchResult[]> {
 
 export async function fetchGutenbergText(gutenbergId: string): Promise<string> {
   const id = gutenbergId.replace('gutenberg-', '');
-  // Try plain text UTF-8 first
-  const url = `https://www.gutenberg.org/files/${id}/${id}-0.txt`;
-  const res = await fetch(url);
-
-  if (!res.ok) {
-    // Fallback to cache URL
-    const fallback = `https://www.gutenberg.org/cache/epub/${id}/pg${id}.txt`;
-    const res2 = await fetch(fallback);
-    if (!res2.ok) throw new Error(`Could not fetch Gutenberg book ${id}`);
-    return await res2.text();
-  }
-
+  const res = await fetch(`/api/fetch-book?id=${id}`);
+  if (!res.ok) throw new Error(`Could not fetch Gutenberg book ${id}`);
   return await res.text();
 }
 
