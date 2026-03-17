@@ -14,7 +14,7 @@ export interface SearchResult {
   id: string;
   title: string;
   author: string;
-  source: 'gutenberg' | 'openlibrary';
+  source: 'gutenberg' | 'archive';
   coverUrl?: string;
 }
 
@@ -37,8 +37,40 @@ export async function searchGutenberg(query: string): Promise<SearchResult[]> {
 
 export async function fetchGutenbergText(gutenbergId: string): Promise<string> {
   const id = gutenbergId.replace('gutenberg-', '');
-  const res = await fetch(`/api/fetch-book?id=${id}`);
+  const res = await fetch(`/api/fetch-book?id=${id}&source=gutenberg`);
   if (!res.ok) throw new Error(`Could not fetch Gutenberg book ${id}`);
+  return await res.text();
+}
+
+// ── Internet Archive ────────────────────────────────────
+
+export async function searchInternetArchive(query: string): Promise<SearchResult[]> {
+  const params = new URLSearchParams({
+    q: `(${query}) AND mediatype:texts AND language:eng AND NOT collection:inlibrary`,
+    'fl[]': 'identifier,title,creator,subject',
+    sort: 'downloads desc',
+    rows: '20',
+    page: '1',
+    output: 'json',
+  });
+  const res = await fetch(`https://archive.org/advancedsearch.php?${params}`);
+  if (!res.ok) return [];
+  const data = await res.json();
+  return (data.response?.docs || [])
+    .filter((doc: any) => doc.identifier && doc.title)
+    .map((doc: any) => ({
+      id: `archive-${doc.identifier}`,
+      title: Array.isArray(doc.title) ? doc.title[0] : doc.title,
+      author: Array.isArray(doc.creator) ? doc.creator[0] : (doc.creator || 'Unknown'),
+      source: 'archive' as const,
+      coverUrl: `https://archive.org/services/img/${doc.identifier}`,
+    }));
+}
+
+export async function fetchArchiveText(archiveId: string): Promise<string> {
+  const id = archiveId.replace('archive-', '');
+  const res = await fetch(`/api/fetch-book?id=${id}&source=archive`);
+  if (!res.ok) throw new Error(`Could not fetch Internet Archive book ${id}`);
   return await res.text();
 }
 

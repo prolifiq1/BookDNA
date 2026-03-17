@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { searchGutenberg, fetchGutenbergText, SearchResult } from '@/lib/sources';
+import { searchGutenberg, fetchGutenbergText, searchInternetArchive, fetchArchiveText, SearchResult } from '@/lib/sources';
 
 interface BookInputProps {
   onTextLoaded: (text: string, title: string, author: string) => void;
@@ -24,8 +24,11 @@ export default function BookInput({ onTextLoaded, isAnalysing }: BookInputProps)
     if (!query.trim()) return;
     setSearching(true);
     try {
-      const gutenberg = await searchGutenberg(query).catch(() => []);
-      setResults(gutenberg);
+      const [gutenberg, archive] = await Promise.all([
+        searchGutenberg(query).catch(() => []),
+        searchInternetArchive(query).catch(() => []),
+      ]);
+      setResults([...gutenberg, ...archive]);
     } finally {
       setSearching(false);
     }
@@ -33,15 +36,11 @@ export default function BookInput({ onTextLoaded, isAnalysing }: BookInputProps)
 
   const handleSelectBook = useCallback(
     async (result: SearchResult) => {
-      if (result.source !== 'gutenberg') {
-        alert(
-          'Open Library provides metadata but not full text. Try the Gutenberg version or upload the book file.'
-        );
-        return;
-      }
       setLoading(result.id);
       try {
-        const text = await fetchGutenbergText(result.id);
+        const text = result.source === 'archive'
+          ? await fetchArchiveText(result.id)
+          : await fetchGutenbergText(result.id);
         onTextLoaded(text, result.title, result.author);
       } catch (err) {
         alert('Failed to fetch book text. Try another edition.');
@@ -151,7 +150,7 @@ export default function BookInput({ onTextLoaded, isAnalysing }: BookInputProps)
                       <p className="text-helix-muted text-sm">{result.author}</p>
                     </div>
                     <span className="text-[10px] font-mono uppercase text-helix-muted/60 px-2 py-0.5 bg-helix-card rounded">
-                      {result.source === 'gutenberg' ? 'Gutenberg' : 'Open Library'}
+                      {result.source === 'gutenberg' ? 'Gutenberg' : 'Archive.org'}
                     </span>
                     {loading === result.id && (
                       <span className="text-helix-accent text-sm animate-pulse">Loading…</span>
