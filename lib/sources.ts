@@ -46,8 +46,8 @@ export async function fetchGutenbergText(gutenbergId: string): Promise<string> {
 
 export async function searchInternetArchive(query: string): Promise<SearchResult[]> {
   const params = new URLSearchParams({
-    q: `(${query}) AND mediatype:texts AND language:eng AND NOT collection:inlibrary`,
-    'fl[]': 'identifier,title,creator,subject',
+    q: `(${query}) AND mediatype:texts AND language:eng AND format:"DjVuTXT" AND NOT collection:inlibrary AND NOT collection:internetarchivebooks`,
+    'fl[]': 'identifier,title,creator',
     sort: 'downloads desc',
     rows: '20',
     page: '1',
